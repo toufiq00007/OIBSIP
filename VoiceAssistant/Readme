@@ -1,1 +1,8 @@
+A simple voice assistant which included some basic command like time , date , jokes , wikipedia basic for getting information about 
+a person and I added there a command for playing songs from youtube . Its name is alexa.
 
+PROCESS OF USING THIS ASSISTANT 
+1: you can say alexa tell me the time or date 
+2: alexa who the heck is and tell me about for wikipedia search
+3: alexa tell me a joke
+4: alexa play a song (song name)
