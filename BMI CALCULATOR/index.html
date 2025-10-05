@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web BMI Calculator</title>
+    <style>
+        /* AESTHETIC ENHANCEMENTS */
+        
+        /* Softer dark background base */
+        body { 
+            font-family: 'Inter', Arial, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            background-color: #121212; /* Deep, soft dark gray fallback */
+            color: #e0e0e0; 
+            position: relative; /* Needed for z-index context */
+            z-index: 0; /* Ensures content sits above background */
+        }
+
+        /* --- NEW: BLURRED BACKGROUND IMAGE LAYER --- */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* NEW IMAGE: A vibrant bowl of healthy food */
+            background-image: url('https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1480&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            
+            /* Apply the blur effect */
+            filter: blur(4px); 
+            
+            /* Add a dark overlay for better contrast with the white text/card */
+            box-shadow: inset 0 0 0 1000px rgba(0, 0, 0, 0.45); 
+            
+            z-index: -1; /* Place behind all content */
+        }
+        
+        /* Calculator container: Elevated and modern */
+        .calculator { 
+            background-color: #1e1e1e; 
+            padding: 35px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7), 0 0 5px rgba(0, 0, 0, 0.9); /* Darker shadow for contrast */
+            width: 380px; 
+            text-align: center; 
+            border: 1px solid #333; 
+            transition: transform 0.3s ease-in-out; 
+            position: relative; /* Ensure it sits above the blurred background */
+            z-index: 1; 
+        }
+
+        .calculator:hover {
+            transform: translateY(-2px); 
+        }
+        
+        h2 {
+            color: #ffffff; 
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        /* Input and Button styling refinement (unchanged) */
+        input, button { 
+            width: 100%; 
+            padding: 14px; 
+            margin-top: 10px; 
+            border-radius: 8px; 
+            border: 1px solid #3a3a3a; 
+            box-sizing: border-box; 
+            background-color: #2c2c2c; 
+            color: #ffffff; 
+            font-size: 16px;
+            transition: all 0.2s ease-in-out;
+        }
+
+        input:focus {
+            border-color: #00bcd4; 
+            box-shadow: 0 0 0 3px rgba(0, 188, 212, 0.4);
+            outline: none;
+        }
+        
+        /* Main Button styling (unchanged) */
+        .calculate-btn { 
+            margin-top: 25px;
+            background-color: #007bff; 
+            border: none;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        
+        button:hover { 
+            background-color: #0069d9; 
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* Gemini Feature Button Styling (unchanged) */
+        .gemini-btn {
+            background-color: #4CAF50; 
+            margin-top: 10px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .gemini-btn:hover {
+            background-color: #43a047;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* Result box is styled for clarity (unchanged) */
+        #result { 
+            margin-top: 30px; 
+            padding: 18px; 
+            border-radius: 8px; 
+            min-height: 20px; 
+            font-weight: bold; 
+            background-color: #252525; 
+            border: 1px solid #444;
+            font-size: 1.1em;
+            color: #e0e0e0;
+        }
+
+        /* New Tip Output Area (unchanged) */
+        #healthTip {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #3a3a3a;
+            color: #fff;
+            text-align: left;
+            font-size: 0.9em;
+            line-height: 1.4;
+            display: none; 
+        }
+        
+        .input-group { 
+            text-align: left; 
+            margin-bottom: 15px; 
+        }
+        
+        .input-group label { 
+            display: block; 
+            font-weight: 500; 
+            margin-bottom: 8px; 
+            color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <h2>Web BMI Calculator</h2>
+        
+        <div class="input-group">
+            <label for="weight">Weight (kg):</label>
+            <input type="number" id="weight" placeholder="e.g., 70" required>
+        </div>
+        
+        <div class="input-group">
+            <label for="height">Height (cm):</label>
+            <input type="number" id="height" placeholder="e.g., 175" required>
+        </div>
+
+        <button class="calculate-btn" onclick="sendCalculationRequest()">Calculate BMI</button>
+        
+        <div id="result">The result will appear here.</div>
+
+        <!-- NEW GEMINI FEATURE BUTTON -->
+        <button id="tipButton" class="gemini-btn" style="display: none;" onclick="triggerHealthTip()">
+            Get Personalized Health Tip ✨
+        </button>
+
+        <!-- NEW GEMINI OUTPUT AREA -->
+        <div id="healthTip"></div>
+
+    </div>
+
+    <script>
+        // --- Gemini API Configuration ---
+        const apiKey = ""; // API key is left empty as per instructions
+        const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
+
+        /**
+         * Sends user input to the Python Flask backend via the /calculate API endpoint.
+         */
+        async function sendCalculationRequest() {
+            const weight = document.getElementById('weight').value;
+            const height = document.getElementById('height').value;
+            const resultDisplay = document.getElementById('result');
+            const tipButton = document.getElementById('tipButton');
+            
+            // Hide previous LLM results
+            tipButton.style.display = 'none';
+            document.getElementById('healthTip').style.display = 'none';
+            
+            resultDisplay.style.backgroundColor = '#252525';
+            resultDisplay.textContent = "Calculating...";
+            resultDisplay.style.color = '#e0e0e0';
+
+            if (!weight || !height || parseFloat(weight) <= 0 || parseFloat(height) <= 0) {
+                resultDisplay.textContent = "Error: Please enter valid positive values.";
+                resultDisplay.style.backgroundColor = '#4e0000'; 
+                resultDisplay.style.color = '#ff9999'; 
+                return;
+            }
+
+            try {
+                // 1. Call Python Flask Backend for BMI Calculation
+                const response = await fetch('/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ weight: weight, height: height }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const { bmi, category } = data;
+                    resultDisplay.textContent = `BMI: ${bmi} | Category: ${category}`;
+                    
+                    // Style the result based on the category
+                    if (category.includes('Normal')) {
+                        resultDisplay.style.backgroundColor = '#4CAF50'; 
+                        resultDisplay.style.color = 'white';
+                    } else if (category.includes('Underweight')) {
+                        resultDisplay.style.backgroundColor = '#ff9800'; 
+                        resultDisplay.style.color = 'black';
+                    } else if (category.includes('Overweight')) {
+                        resultDisplay.style.backgroundColor = '#ffc107'; 
+                        resultDisplay.style.color = 'black';
+                    } else { // Obesity
+                        resultDisplay.style.backgroundColor = '#f44336'; 
+                        resultDisplay.style.color = 'white';
+                    }
+                    
+                    // Store the result data in the button for the LLM call and show the button
+                    tipButton.setAttribute('data-bmi', bmi);
+                    tipButton.setAttribute('data-category', category);
+                    tipButton.style.display = 'block'; 
+
+                } else {
+                    resultDisplay.textContent = `Server Error: ${data.error || 'Unknown error.'}`;
+                    resultDisplay.style.backgroundColor = '#4e0000';
+                    resultDisplay.style.color = '#ff9999';
+                }
+
+            } catch (error) {
+                console.error('Fetch Error:', error);
+                resultDisplay.textContent = "Network Error: Could not reach server.";
+                resultDisplay.style.backgroundColor = '#4e0000';
+                resultDisplay.style.color = '#ff9999';
+            }
+        }
+
+        // --- Gemini LLM Feature Implementation (unchanged) ---
+
+        /**
+         * Wrapper function to trigger the health tip generation using data stored on the button.
+         */
+        function triggerHealthTip() {
+            const tipButton = document.getElementById('tipButton');
+            const bmi = tipButton.getAttribute('data-bmi');
+            const category = tipButton.getAttribute('data-category');
+            
+            if (bmi && category) {
+                getHealthTip(bmi, category);
+            }
+        }
+
+
+        /**
+         * Calls the Gemini API to generate a personalized health tip based on BMI category with exponential backoff.
+         */
+        async function getHealthTip(bmi, category) {
+            const tipDisplay = document.getElementById('healthTip');
+            tipDisplay.style.display = 'block';
+            tipDisplay.innerHTML = '<strong>Generating tip...</strong> <small>This may take a moment.</small>';
+            tipDisplay.style.backgroundColor = '#3a3a3a';
+            tipDisplay.style.color = '#fff';
+
+            // Prompt engineering for concise, grounded advice
+            const userQuery = `I have a BMI of ${bmi}, which is classified as ${category}. Provide a single, concise, and helpful actionable tip focused on lifestyle, diet, or exercise for someone in this category. Be encouraging and grounded in wellness best practices.`;
+            
+            const systemPrompt = "You are a professional and encouraging health and fitness coach. Your response must be only the tip, formatted as a short paragraph. Do not include a greeting or sign-off.";
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                // Use Google Search for grounding the advice
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            const maxRetries = 3;
+            let attempt = 0;
+            
+            while (attempt < maxRetries) {
+                try {
+                    const response = await fetch(`${apiUrl}?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429 && attempt < maxRetries - 1) {
+                            // Exponential backoff
+                            const delay = Math.pow(2, attempt) * 1000;
+                            await new Promise(resolve => setTimeout(resolve, delay));
+                            attempt++;
+                            continue;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        const text = candidate.content.parts[0].text;
+                        let sources = [];
+
+                        // Extract grounding sources (citations)
+                        const groundingMetadata = candidate.groundingMetadata;
+                        if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                            sources = groundingMetadata.groundingAttributions
+                                .map(attribution => ({
+                                    uri: attribution.web?.uri,
+                                    title: attribution.web?.title,
+                                }))
+                                .filter(source => source.uri && source.title);
+                        }
+
+                        let sourceHtml = '';
+                        if (sources.length > 0) {
+                            // Display up to 3 sources
+                            sourceHtml = '<hr style="border: none; height: 1px; background-color: #555; margin: 10px 0;"><strong>Source(s):</strong><ul style="list-style-type: disc; margin-left: 20px;">';
+                            sources.slice(0, 3).forEach(s => {
+                                sourceHtml += `<li><a href="${s.uri}" target="_blank" style="color: #00bcd4; text-decoration: none;">${s.title}</a></li>`;
+                            });
+                            sourceHtml += '</ul>';
+                        }
+
+
+                        tipDisplay.innerHTML = `
+                            <p style="font-weight: bold; margin-bottom: 5px; color: #4CAF50;">✨ Personalized Tip for ${category}:</p>
+                            <p>${text}</p>
+                            ${sourceHtml}
+                        `;
+                        return; // Success
+                    } else {
+                        tipDisplay.innerHTML = '<p style="color: #ff9999;">Error: Could not generate a helpful tip.</p>';
+                    }
+                } catch (error) {
+                    console.error('API Call Error:', error);
+                    tipDisplay.innerHTML = `<p style="color: #ff9999;">Network or API Error: ${error.message}</p>`;
+                    return; 
+                }
+            }
+            if (attempt === maxRetries) {
+                tipDisplay.innerHTML = `<p style="color: #ff9999;">Request failed after ${maxRetries} attempts due to rate limiting or server issues. Please try again later.</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
