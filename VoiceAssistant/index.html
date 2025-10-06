@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Assistant Terminal - Best Version</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            font-family: 'Inter', sans-serif;
+        }
+        .mic-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .mic-button:hover {
+            transform: scale(1.05);
+        }
+        .listening {
+            animation: pulse-ring 1.5s infinite;
+        }
+        /* Custom Keyframe Pulse for the Dark Theme */
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0px rgba(129, 140, 248, 0.7); } /* Indigo pulse */
+            70% { box-shadow: 0 0 0 18px rgba(129, 140, 248, 0); }
+            100% { box-shadow: 0 0 0 0px rgba(129, 140, 248, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 flex items-center justify-center min-h-screen p-4 text-white">
+
+    <div id="app" class="w-full max-w-lg bg-gray-800 shadow-2xl rounded-3xl p-6 md:p-8 space-y-6 border border-gray-700">
+        <h1 class="text-3xl font-extrabold text-white text-center">
+            🎙️ Voice Command Terminal
+        </h1>
+        <p class="text-center text-gray-400 mb-6">
+            Tap the mic, speak a command, and watch the magic!
+        </p>
+
+        <div id="status-message" class="text-center font-medium h-6 text-indigo-400">
+            Ready to listen. (Ensure Flask server is running)
+        </div>
+
+        <div class="flex justify-center">
+            <button id="mic-btn" class="mic-button p-6 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-400 focus:ring-opacity-75 relative">
+                <i data-lucide="mic" class="w-8 h-8"></i>
+            </button>
+        </div>
+
+        <div id="transcript-container" class="bg-gray-700 p-4 rounded-xl shadow-inner border border-gray-600">
+            <p class="text-xs font-semibold text-indigo-400 mb-1">Your Command:</p>
+            <p id="transcript" class="text-sm text-gray-200 italic">No input yet.</p>
+        </div>
+
+        <div id="assistant-output-box" class="bg-gray-700/50 p-4 rounded-xl border-2 border-indigo-600 min-h-[5rem] relative">
+            <div id="loading-spinner" class="absolute inset-0 flex items-center justify-center bg-gray-800/70 backdrop-blur-sm hidden z-10">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-400"></div>
+            </div>
+            <p class="text-xs font-semibold text-indigo-400 mb-2">Assistant Response:</p>
+            <p id="assistant-message" class="text-lg font-bold text-gray-100 whitespace-pre-wrap">
+                Awaiting server response...
+            </p>
+        </div>
+
+        <div id="response-container" class="bg-gray-800 p-3 rounded-xl border border-gray-700">
+            <p class="text-xs font-semibold text-gray-400 mb-1">System Status:</p>
+            <pre id="response-content" class="text-xs text-green-400 whitespace-pre-wrap font-mono">
+                Status: Awaiting command...
+            </pre>
+        </div>
+
+        <div id="browser-warning" class="text-center text-red-400 text-xs mt-4 hidden">
+            <i data-lucide="alert-triangle" class="inline-block w-4 h-4 mr-1"></i>
+            Note: Speech Recognition may not be supported or requires permissions in your browser.
+        </div>
+
+    </div>
+<script type="module">
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // --- Core Variables and Configuration ---
+        const micBtn = document.getElementById('mic-btn');
+        const transcriptElement = document.getElementById('transcript');
+        const statusMessage = document.getElementById('status-message');
+        const responseContent = document.getElementById('response-content');
+        const assistantMessage = document.getElementById('assistant-message');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const browserWarning = document.getElementById('browser-warning');
+
+        let isListening = false;
+        let recognition = null;
+
+        // --- IMPORTANT: Flask Backend URL ---
+        const BACKEND_URL = 'http://127.0.0.1:5000/command';
+
+        // --- Web Speech API Setup ---
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = () => {
+                isListening = true;
+                micBtn.classList.add('listening', 'bg-red-600');
+                micBtn.classList.remove('bg-indigo-600');
+                statusMessage.textContent = '🎧 Listening... Speak now.';
+                transcriptElement.textContent = '...';
+                responseContent.textContent = 'Awaiting server response...';
+                assistantMessage.textContent = '...';
+            };
+
+            recognition.onend = () => {
+                isListening = false;
+                micBtn.classList.remove('listening', 'bg-red-600');
+                micBtn.classList.add('bg-indigo-600');
+                // Status message will be updated by processCommand
+            };
+
+            recognition.onresult = (event) => {
+                const speechResult = event.results[0][0].transcript;
+                transcriptElement.textContent = speechResult;
+                processCommand(speechResult);
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                statusMessage.textContent = `Error: ${event.error}. Click to retry.`;
+                micBtn.classList.remove('listening', 'bg-red-600');
+                micBtn.classList.add('bg-indigo-600');
+                isListening = false;
+                if (event.error === 'not-allowed') {
+                    statusMessage.textContent = 'Microphone access denied. Please check browser permissions.';
+                }
+            };
+        } else {
+            browserWarning.classList.remove('hidden');
+            micBtn.disabled = true;
+            statusMessage.textContent = 'Voice recognition is not supported in this browser.';
+        }
+
+        // --- Event Listener for Microphone Button ---
+        micBtn.addEventListener('click', () => {
+            if (recognition) {
+                if (isListening) {
+                    recognition.stop();
+                } else {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error("Recognition start failed, possibly already active:", e);
+                        statusMessage.textContent = 'Already listening or permission issue. Try clicking again.';
+                    }
+                }
+            }
+        });
+
+
+        // --- Backend API Call Function (The focus area) ---
+        async function processCommand(userQuery) {
+            if (!userQuery || userQuery.trim() === '') {
+                statusMessage.textContent = 'No voice input detected. Ready to listen.';
+                transcriptElement.textContent = 'No input yet.';
+                return;
+            }
+
+            loadingSpinner.classList.remove('hidden');
+            statusMessage.textContent = '📡 Sending command to Flask backend...';
+
+            const payload = {
+                command: userQuery
+            };
+
+            try {
+                // The core fetch request that uses the POST method
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    // Check for HTTP errors (like 405 Method Not Allowed, or 500 Internal Server Error)
+                    const errorDetails = await response.json().catch(() => ({}));
+                    throw new Error(`HTTP error! Status: ${response.status}. Details: ${errorDetails.error || response.statusText}`);
+                }
+
+                const result = await response.json();
+
+                // Display the raw JSON response
+                responseContent.textContent = JSON.stringify(result, null, 2);
+
+                // Display the extracted assistant message clearly
+                const message = result.assistant_response || "No response text found.";
+                assistantMessage.textContent = message;
+
+                statusMessage.textContent = '✅ Backend response received.';
+
+            } catch (error) {
+                console.error('Backend request failed:', error);
+                // Specifically guide the user if the error is likely due to CORS/connection
+                let errorMessage = `❌ ERROR: Could not connect to backend.
+                                    Is the Flask server running?
+                                    Did you install 'flask-cors' in the backend?`;
+
+                if (error.message.includes("Failed to fetch")) {
+                    errorMessage = `❌ ERROR: Network failure. Ensure server is running at ${BACKEND_URL} and check browser console for CORS error.`;
+                }
+
+                statusMessage.textContent = errorMessage;
+                assistantMessage.textContent = 'Connection Error.';
+                responseContent.textContent = error.message;
+
+            } finally {
+                loadingSpinner.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
