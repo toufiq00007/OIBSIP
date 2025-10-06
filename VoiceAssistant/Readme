@@ -6,3 +6,8 @@ PROCESS OF USING THIS ASSISTANT
 2: alexa who the heck is and tell me about for wikipedia search
 3: alexa tell me a joke
 4: alexa play a song (song name)
+
+
+FOR THE WEB RUN 
+activate the virtual environment
+D:\python\.venv\Scripts\activate then normal python app.py
