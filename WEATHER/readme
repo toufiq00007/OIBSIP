@@ -1,1 +1,74 @@
+☀️ Basic Weather App
+A simple, command-line interface (CLI) application built with Python to fetch and display current weather data for any location worldwide using a powerful third-party weather API.
 
+✨ Features
+Location Query: Accepts a city name or ZIP code as a command-line argument.
+
+Real-time Data: Fetches the most current weather information.
+
+Key Metrics Display: Shows the following basic weather information:
+
+Temperature (in Celsius or Fahrenheit).
+
+Humidity percentage.
+
+General weather conditions (e.g., "Clear Sky," "Broken Clouds," "Light Rain").
+
+🛠️ Prerequisites
+Before you begin, ensure you have the following installed:
+
+Python 3.x
+
+An API Key from a weather service provider (e.g., OpenWeatherMap, WeatherAPI). This application uses HTTP requests to retrieve data.
+
+🚀 Installation and Setup
+1. Clone the Repository
+git clone [https://github.com/your-username/basic-weather-cli.git](https://github.com/your-username/basic-weather-cli.git)
+cd basic-weather-cli
+
+2. Install Dependencies
+This project requires the requests library for making API calls.
+
+pip install requests
+
+3. Configure API Key (Crucial Step)
+For security, the API key should be stored as an environment variable, not directly in the code.
+
+Get your API Key from your chosen weather service.
+
+Set the environment variable named WEATHER_API_KEY in your terminal session.
+
+For Linux/macOS:
+
+export WEATHER_API_KEY="YOUR_SECRET_API_KEY_HERE"
+
+For Windows (Command Prompt):
+
+set WEATHER_API_KEY="YOUR_SECRET_API_KEY_HERE"
+
+💡 Usage
+Run the script by providing the location (city name or ZIP code) as a positional argument.
+
+By City Name
+python weather_cli.py "London, UK"
+
+By ZIP Code (Example for US)
+python weather_cli.py 90210
+
+📋 Example Output
+A successful run will display a formatted output like the following:
+
+======================================
+         WEATHER REPORT
+======================================
+Location: New York, US
+--------------------------------------
+Conditions: Light Rain 🌧️
+Temperature: 15.2°C (Feels like 13.0°C)
+Humidity: 88%
+Wind Speed: 4.63 m/s
+--------------------------------------
+Data retrieved successfully.
+
+🔧 Contributing
+Feel free to open issues or submit pull requests for improvements, such as adding forecast capabilities or unit conversion options.
