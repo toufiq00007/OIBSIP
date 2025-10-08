@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Weather Dashboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind for Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Dark background */
+        }
+
+        /* Keyframes for Sun Animation */
+        @keyframes sun-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .sun-animation {
+            animation: sun-spin 8s linear infinite;
+        }
+
+        /* Keyframes for Rain Animation (simple vertical movement of drops) */
+        @keyframes rain-fall {
+            0% { transform: translateY(-100%); opacity: 1; }
+            100% { transform: translateY(100%); opacity: 0.5; }
+        }
+
+        .rain-drop {
+            position: absolute;
+            width: 2px;
+            height: 10px;
+            background-color: #89b4f8; /* Light blue rain */
+            border-radius: 50%;
+            animation: rain-fall 0.8s linear infinite;
+        }
+
+        /* Container to hide overflow and position drops */
+        .rain-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div id="app" class="w-full max-w-xl bg-[#161b22] shadow-2xl rounded-xl p-6 md:p-10 text-white border border-[#21262d]">
+
+        <!-- Header & Input Form -->
+        <h1 class="text-3xl font-bold mb-6 text-center text-[#58a6ff]">Weather Dashboard</h1>
+
+        <form id="weatherForm" class="flex flex-col sm:flex-row gap-3 mb-8">
+            <input
+                type="text"
+                id="locationInput"
+                placeholder="Enter city name or ZIP code (e.g., London, 731101,IN)"
+                required
+                class="flex-grow p-3 rounded-lg bg-[#0d1117] border border-[#30363d] focus:border-[#58a6ff] focus:outline-none placeholder-gray-500 text-sm"
+            >
+            <button
+                type="submit"
+                id="searchButton"
+                class="bg-[#2ea043] hover:bg-[#258d35] text-white font-semibold py-3 px-6 rounded-lg transition duration-200 shadow-md transform active:scale-95"
+            >
+                Get Weather
+            </button>
+        </form>
+
+        <!-- Message/Loading Area -->
+        <div id="messageBox" class="text-center p-4 rounded-lg bg-[#21262d] text-yellow-400 mb-6 hidden">
+            <!-- Messages like errors or loading indicators will appear here -->
+        </div>
+
+        <!-- Weather Display Card (Initially Hidden) -->
+        <div id="weatherDisplay" class="hidden">
+            <h2 id="locationName" class="text-2xl md:text-3xl font-bold mb-4 text-center">---</h2>
+
+            <div class="flex flex-col md:flex-row items-center justify-between bg-[#0d1117] p-6 rounded-xl border border-[#30363d] space-y-4 md:space-y-0">
+
+                <!-- Animation/Icon Area -->
+                <div id="animationArea" class="w-28 h-28 flex items-center justify-center text-6xl text-yellow-300 md:mr-6 flex-shrink-0">
+                    <!-- Dynamic SVG or CSS animation will be injected here -->
+                </div>
+
+                <!-- Data Display -->
+                <div class="flex-grow w-full md:w-auto">
+                    <div class="grid grid-cols-2 gap-4 text-sm font-medium">
+
+                        <div class="col-span-2 flex items-center">
+                            <span class="text-gray-400 mr-2">Conditions:</span>
+                            <span id="conditions" class="text-lg font-bold text-teal-400">---</span>
+                        </div>
+
+                        <div class="flex flex-col p-2 bg-[#161b22] rounded-md">
+                            <span class="text-xs text-gray-400">Temperature</span>
+                            <span id="temperature" class="text-xl font-extrabold text-[#58a6ff]">--</span>
+                        </div>
+
+                        <div class="flex flex-col p-2 bg-[#161b22] rounded-md">
+                            <span class="text-xs text-gray-400">Humidity</span>
+                            <span id="humidity" class="text-xl font-extrabold text-purple-400">--</span>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // =========================================================================
+        // Configuration
+        // =========================================================================
+
+        // !!! CRITICAL: REPLACE "YOUR_API_KEY_HERE" with your actual OpenWeatherMap API key !!!
+        const API_KEY = "ece175428d24a9e3e2b6d46d409a803c"; // Using the key provided by the user (assuming it's now active)
+        const BASE_URL = "https://api.openweathermap.org/data/2.5/weather";
+        const UNITS = "metric"; // 'metric' for Celsius, 'imperial' for Fahrenheit
+
+        // =========================================================================
+        // DOM Elements
+        // =========================================================================
+        const form = document.getElementById('weatherForm');
+        const locationInput = document.getElementById('locationInput');
+        const messageBox = document.getElementById('messageBox');
+        const weatherDisplay = document.getElementById('weatherDisplay');
+        const locationNameEl = document.getElementById('locationName');
+        const temperatureEl = document.getElementById('temperature');
+        const humidityEl = document.getElementById('humidity');
+        const conditionsEl = document.getElementById('conditions');
+        const animationArea = document.getElementById('animationArea');
+
+        // =========================================================================
+        // Utility Functions
+        // =========================================================================
+
+        function showMessage(message, isError = false) {
+            messageBox.textContent = message;
+            messageBox.className = `text-center p-4 rounded-lg mb-6 block ${isError ? 'bg-red-900 text-red-300' : 'bg-yellow-900 text-yellow-300'}`;
+            weatherDisplay.classList.add('hidden');
+        }
+
+        function hideMessage() {
+            messageBox.classList.add('hidden');
+        }
+
+        // =========================================================================
+        // Animation/Icon Generation
+        // =========================================================================
+
+        function getSunSVG() {
+            return `
+                <svg viewBox="0 0 100 100" class="sun-animation w-full h-full">
+                    <circle cx="50" cy="50" r="25" fill="#facc15"/>
+                    <line x1="50" y1="5" x2="50" y2="15" stroke="#facc15" stroke-width="5" stroke-linecap="round"/>
+                    <line x1="50" y1="95" x2="50" y2="85" stroke="#facc15" stroke-width="5" stroke-linecap="round"/>
+                    <line x1="5" y1="50" x2="15" y2="50" stroke="#facc15" stroke-width="5" stroke-linecap="round"/>
+                    <line x1="95" y1="50" x2="85" y2="50" stroke="#facc15" stroke-width="5" stroke-linecap="round"/>
+                    <line x1="20" y1="20" x2="27" y2="27" stroke="#facc15" stroke-width="5" stroke-linecap="round" transform="rotate(-45 50 50)"/>
+                    <line x1="73" y1="73" x2="80" y2="80" stroke="#facc15" stroke-width="5" stroke-linecap="round" transform="rotate(-45 50 50)"/>
+                    <line x1="20" y1="80" x2="27" y2="73" stroke="#facc15" stroke-width="5" stroke-linecap="round" transform="rotate(45 50 50)"/>
+                    <line x1="73" y1="27" x2="80" y2="20" stroke="#facc15" stroke-width="5" stroke-linecap="round" transform="rotate(45 50 50)"/>
+                </svg>
+            `;
+        }
+
+        function getRainAnimationHTML(dropCount = 30) {
+            let rainHTML = '<div class="rain-container">';
+            for (let i = 0; i < dropCount; i++) {
+                const delay = Math.random() * 2;
+                const duration = 0.8 + Math.random() * 0.4;
+                const left = Math.random() * 100;
+
+                rainHTML += `<div class="rain-drop" style="left: ${left}%; animation-delay: -${delay}s; animation-duration: ${duration}s;"></div>`;
+            }
+            rainHTML += '</div>';
+            return rainHTML;
+        }
+
+        function setIconSizeLarge() {
+            // Used for Emoji icons (Clouds, Unknown)
+            animationArea.classList.add('text-7xl');
+            animationArea.classList.remove('text-6xl');
+        }
+
+        function setIconSizeDefault() {
+            // Used for SVG icons (Sun, Rain) to rely on container size
+            animationArea.classList.add('text-6xl');
+            animationArea.classList.remove('text-7xl');
+        }
+
+        function updateAnimation(weatherMain) {
+            animationArea.innerHTML = ''; // Clear previous animation
+
+            const mainCondition = weatherMain.toLowerCase();
+
+            if (mainCondition === 'clear') {
+                // Sun animation (SVG)
+                setIconSizeDefault();
+                animationArea.innerHTML = getSunSVG();
+                animationArea.classList.remove('text-gray-400', 'text-blue-400');
+                animationArea.classList.add('text-yellow-300');
+            } else if (mainCondition.includes('rain') || mainCondition.includes('drizzle') || mainCondition.includes('thunderstorm') || mainCondition.includes('snow')) {
+                // Rain/Snow animation (CSS/HTML)
+                setIconSizeDefault();
+                animationArea.innerHTML = getRainAnimationHTML();
+                animationArea.classList.remove('text-yellow-300', 'text-gray-400');
+                animationArea.classList.add('text-blue-400');
+            } else if (mainCondition.includes('clouds') || mainCondition.includes('mist') || mainCondition.includes('fog')) {
+                // Static cloud/mist icon (Emoji)
+                 setIconSizeLarge();
+                 animationArea.innerHTML = '☁️';
+                 animationArea.classList.remove('text-yellow-300', 'text-blue-400');
+                 animationArea.classList.add('text-gray-400');
+            } else {
+                 // Unknown condition (Emoji)
+                 setIconSizeLarge();
+                 animationArea.innerHTML = '❓';
+                 animationArea.classList.remove('text-yellow-300', 'text-blue-400');
+                 animationArea.classList.add('text-gray-400');
+            }
+        }
+
+        // =========================================================================
+        // API Call Handler
+        // =========================================================================
+
+        async function fetchWeather(location) {
+            if (API_KEY === "YOUR_API_KEY_HERE") {
+                showMessage("CRITICAL ERROR: Please replace 'YOUR_API_KEY_HERE' with your actual OpenWeatherMap API key in the JavaScript code.", true);
+                return;
+            }
+
+            const url = `${BASE_URL}?q=${encodeURIComponent(location)}&appid=${API_KEY}&units=${UNITS}`;
+
+            showMessage(`Fetching weather for ${location}...`);
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (response.ok) {
+                    processWeatherData(data);
+                } else {
+                    // Handle API specific errors (e.g., 404 not found)
+                    const errorMsg = data.message ? data.message.toUpperCase() : 'Unknown Error';
+                    showMessage(`Error: Location not found or API issue (${errorMsg})`, true);
+                }
+            } catch (error) {
+                // Handle network errors
+                console.error("Fetch failed:", error);
+                showMessage("Network Error: Could not connect to the weather service.", true);
+            }
+        }
+
+        function processWeatherData(data) {
+            const temp = data.main.temp;
+            const humidity = data.main.humidity;
+            const weather = data.weather[0];
+            const location = `${data.name}, ${data.sys.country}`;
+            const conditions = weather.description.charAt(0).toUpperCase() + weather.description.slice(1);
+            const unitChar = UNITS === 'metric' ? 'C' : 'F';
+
+            // 1. Update all static data fields
+            locationNameEl.textContent = location;
+            temperatureEl.textContent = `${temp.toFixed(1)}°${unitChar}`;
+            humidityEl.textContent = `${humidity}%`;
+            conditionsEl.textContent = conditions;
+
+            // 2. Update the visual animation
+            updateAnimation(weather.main);
+
+            // 3. Show the results
+            hideMessage();
+            weatherDisplay.classList.remove('hidden');
+        }
+
+        // =========================================================================
+        // Event Listener
+        // =========================================================================
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const location = locationInput.value.trim();
+            if (location) {
+                fetchWeather(location);
+            } else {
+                showMessage("Please enter a city name or ZIP code.", true);
+            }
+        });
+
+        // Optional: Run an initial search on load
+        window.onload = () => {
+             // Use a default location for a good first impression
+             fetchWeather('London');
+        };
+
+    </script>
+
+</body>
+</html>
