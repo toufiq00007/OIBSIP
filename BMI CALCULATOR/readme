@@ -1,2 +1,46 @@
-In this BMI calculator folder the (index.html) is frontend and the (app.py) is backend 
-BMI.py is the main python code 
+⚖️ Python Body Mass Index (BMI) Calculator CLI
+A straightforward command-line application built in Python that calculates a user's Body Mass Index (BMI) based on their height and weight, and then classifies the result according to standard health categories.
+
+✨ Features
+Simple Input: Prompts the user for height in meters (m) and weight in kilograms (kg).
+
+Accurate Calculation: Uses the standard BMI formula: BMI= [WEIGHT/(HEIGHT*HEIGHT)]
+
+Health Classification: Categorizes the calculated BMI into clear health ranges.
+
+Command-Line Interface (CLI): Easy to run directly from any terminal.
+
+🛠️ Prerequisites
+This application requires only Python 3.x and no external libraries.
+
+Python 3.x must be installed on your system.
+
+🚀 Installation and Setup
+1. Clone the Repository
+You can clone this project to your local machine using git:
+
+git clone [https://github.com/your-username/python-bmi-calculator.git](https://github.com/your-username/python-bmi-calculator.git)
+cd python-bmi-calculator
+
+2. Run the Application
+Since there are no external dependencies, you can run the application directly:
+
+python bmi_calculator.py
+
+💡 Usage Example
+The script will prompt you sequentially for your height and weight, and then immediately display the result.
+
+$ python bmi_calculator.py
+
+===================================
+  BODY MASS INDEX (BMI) CALCULATOR
+===================================
+
+Enter your height in meters (m): 1.75
+Enter your weight in kilograms (kg): 70
+
+--- RESULTS ---
+Your Calculated BMI: 22.86
+Classification: Normal Weight
+
+Stay healthy!
