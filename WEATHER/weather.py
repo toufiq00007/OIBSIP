@@ -8,7 +8,7 @@ import os
 # =========================================================================
 
 # from OpenWeatherMap (https://openweathermap.org).
-API_KEY = "ece175428d24a9e3e2b6d46d409a803c"
+API_KEY = "your api key"
 BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
 UNITS = "metric"  # Use "imperial" for Fahrenheit or "metric" for Celsius
 
@@ -166,3 +166,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
